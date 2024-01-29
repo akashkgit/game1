@@ -11,6 +11,7 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.widget.LinearLayout;
 
 import java.util.Random;
 
@@ -23,14 +24,36 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         // setContentView(R.layout.activity_main);
+
+        LinearLayout lyt = new LinearLayout(this);
         asteroidView = new AsteroidView(this);
         setContentView(asteroidView);
+    }
+
+    // This method executes when the player starts the game
+    @Override
+    protected void onResume() {
+
+        super.onResume();
+
+        // Tell the gameView resume method to execute
+        asteroidView.resume();
+    }
+
+    // This method executes when the player quits the game
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        // Tell the gameView pause method to execute
+        asteroidView.pause();
     }
 
     class AsteroidView extends SurfaceView implements Runnable {
         Thread gameThread = null;
         SurfaceHolder ourHolder;
         volatile boolean playing;
+        int initColor = Color.argb(255,0,250,0);
         boolean paused = true;
         Canvas canvas;
         Paint paint;
@@ -41,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
         boulder[] b;
 
         private long thisTimeFrame;
+
         public AsteroidView(Context context) {
             super(context);
 
@@ -63,38 +87,42 @@ public class MainActivity extends AppCompatActivity {
                 b[i].dx = r.nextInt(30) - 15;
                 b[i].dy = r.nextInt(30) - 15;
                 b[i].diameter = 95;
+                b[i].color = initColor;
+                b[i].alive= true;
             }
 
 
-            while (playing)
-            {
-                if (!paused) {
-                    update();
-                }
-                draw();
+            while (playing) {
+
                 try {
-                    Thread.sleep(50);
+                    Thread.sleep(10);
+
+                    if (!paused) {
+                        update();
+                    }
+                    draw();
                 } catch (InterruptedException e) {
 
                 }
             }
         }
+
         public void update() {
             y = y + 5;
-            if (y > 200)
-                y = 5;
+            if (y > 200) y = 5;
 
             posx += dx;
             posy += dy;
-            if ((posx > width) || (posx < 0))
-                dx = -dx;
-            if ((posy > height) || (posy < 0))
-                dy = -dy;
+            if ((posx > width) || (posx < 0)) dx = -dx;
+            if ((posy > height) || (posy < 0)) dy = -dy;
+//            System.out.println(" updating ");
+            for (int i = 0; i < 5; ++i) {
 
-            for (int i = 0; i < 5; ++i)
-                b[i].update();
-
+                if (null != b[i])
+                    b[i].update();
+            }
         }
+
         public void draw() {
             if (ourHolder.getSurface().isValid()) {
                 // Lock the canvas ready to draw
@@ -104,6 +132,7 @@ public class MainActivity extends AppCompatActivity {
                 height = canvas.getHeight();
 
                 // Draw the background color
+
                 canvas.drawColor(Color.argb(255, 26, 128, 182));
 
                 // Choose the brush color for drawing
@@ -113,9 +142,15 @@ public class MainActivity extends AppCompatActivity {
 
                 // canvas.drawCircle(posx, posy, 30l, paint);
                 for (int i = 0; i < 5; ++i) {
-                    b[i].width = width;
-                    b[i].height = height;
-                    b[i].draw(canvas, paint);
+                    if(b[i] != null && b[i].alive) {
+                        b[i].width = width;
+                        b[i].height = height;
+                        b[i].draw(canvas, paint);
+                    }
+                    else{
+                        // ---- de allocating dead asteroids to save heap memory.
+                        b[i]= null;
+                    }
                 }
 
                 // canvas.drawCircle(b.x, b.y, 50, paint);
@@ -142,29 +177,8 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public boolean onTouchEvent(MotionEvent motionEvent) {
-            if (motionEvent.getAction() == android.view.MotionEvent.ACTION_DOWN)
-                paused = !paused;
+            if (motionEvent.getAction() == android.view.MotionEvent.ACTION_DOWN) paused = !paused;
             return true;
         }
     }
-
-
-    // This method executes when the player starts the game
-    @Override
-    protected void onResume() {
-        super.onResume();
-
-        // Tell the gameView resume method to execute
-        asteroidView.resume();
-    }
-
-    // This method executes when the player quits the game
-    @Override
-    protected void onPause() {
-        super.onPause();
-
-        // Tell the gameView pause method to execute
-        asteroidView.pause();
-    }
-
 }
